@@ -8,24 +8,22 @@ dl_gh "piko revanced-integrations" "crimera" "latest"
 # Patch Twitter Piko:
 get_patches_key "twitter-piko"
 
-# Try multiple sources for Twitter APK
-echo "[+] Trying to download Twitter from multiple sources..."
-
-# Method 1: Try APKPure as primary source
-if get_apkpure "com.twitter.android" "twitter-stable" "twitter/x-corp" "Bundle"; then
-    echo "[+] Successfully downloaded from APKPure"
+# Method 1: Try direct APKMirror with correct URL structure
+echo "[+] Downloading Twitter from APKMirror with correct URL structure..."
+if get_apk "com.twitter.android" "twitter-stable" "x" "x-corp/twitter/x" "Bundle_extract"; then
+    echo "[+] Successfully downloaded from APKMirror"
 else
     # Method 2: Try Uptodown as fallback
-    echo "[-] APKPure failed, trying Uptodown..."
+    echo "[-] APKMirror failed, trying Uptodown..."
     url="https://twitter.en.uptodown.com/android/download"
     download_url="https://dw.uptodown.com/dwn/$(req "$url" - | $pup -p --charset utf-8 'button#detail-download-button attr{data-url}')"
     if req "$download_url" -o "twitter-stable.apk"; then
         echo "[+] Successfully downloaded from Uptodown"
     else
-        # Method 3: Try direct APKMirror with updated path
-        echo "[-] Uptodown failed, trying APKMirror with updated path..."
-        if get_apk "com.twitter.android" "twitter-stable" "x" "x-corp/twitter/x" "Bundle_extract"; then
-            echo "[+] Successfully downloaded from APKMirror"
+        # Method 3: Try alternative APKMirror path
+        echo "[-] Uptodown failed, trying alternative APKMirror path..."
+        if get_apk "com.twitter.android" "twitter-stable" "twitter" "x-corp/twitter/x-formerly-twitter" "Bundle_extract"; then
+            echo "[+] Successfully downloaded from alternative APKMirror path"
         else
             echo "[-] All download methods failed"
             exit 1
