@@ -73,7 +73,7 @@ jobs:
         if: steps.check-gh-rve-arsclib.outputs.internet_error == '0'
         uses: ./.github/actions/release
 
-  patch_twitter_piko_stable:
+    patch_twitter_piko_stable:
     name: Patch Twitter Piko Stable
     if: ${{ github.event.inputs.org == 'Twitter Piko Stable' || inputs.org == 'Twitter Piko Stable' }}
     runs-on: ubuntu-latest
@@ -88,7 +88,7 @@ jobs:
       - name: Patch apk
         id: patch-piko-stable
         if: steps.check-gh-piko-stable.outputs.internet_error == '0'
-        run: bash src/build/Piko.sh
+        run: bash src/build/Twitter-Piko.sh
       - name: Releasing APK files
         id: release-piko-stable
         if: steps.check-gh-piko-stable.outputs.internet_error == '0'
