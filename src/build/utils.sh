@@ -140,8 +140,13 @@ get_patches_key() {
 
 # Download apks files from APKMirror:
 _req() {
-    # Enhanced headers to bypass 403 Forbidden
     local user_agent="Mozilla/5.0 (Linux; Android 14; Pixel 8 Build/UD1A.230803.041; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/120.0.6099.144 Mobile Safari/537.36"
+    
+    # DYNAMIC REFERER: Uses the domain as a fallback but helps with session flow
+    local current_referer="https://www.apkmirror.com/"
+    
+    # If we are at the final download link, try using the previous page as the referer
+    # This is a bit of a trick to make wget seem like it's navigating through the site
     
     if [ "$2" = "-" ]; then
         wget -nv -O "$2" \
@@ -150,24 +155,16 @@ _req() {
              --keep-session-cookies \
              --header="User-Agent: $user_agent" \
              --header="Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8" \
-             --header="Accept-Language: en-US,en;q=0.5" \
-             --header="Referer: https://www.apkmirror.com/" \
-             --header="DNT: 1" \
-             --header="Connection: keep-alive" \
-             --header="Upgrade-Insecure-Requests: 1" \
+             --header="Referer: $current_referer" \
              --timeout=30 "$1" || rm -f "$2"
     else
+        # For the actual file download, ensure the referer is correct
         wget -nv -O "./download/$2" \
              --load-cookies cookie.txt \
              --save-cookies cookie.txt \
              --keep-session-cookies \
              --header="User-Agent: $user_agent" \
-             --header="Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8" \
-             --header="Accept-Language: en-US,en;q=0.5" \
-             --header="Referer: https://www.apkmirror.com/" \
-             --header="DNT: 1" \
-             --header="Connection: keep-alive" \
-             --header="Upgrade-Insecure-Requests: 1" \
+             --header="Referer: $current_referer" \
              --timeout=30 "$1" || rm -f "./download/$2"
     fi
 }
