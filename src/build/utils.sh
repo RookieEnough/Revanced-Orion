@@ -140,32 +140,34 @@ get_patches_key() {
 
 # Download apks files from APKMirror:
 _req() {
-    # Added --load-cookies and --save-cookies to persist session
+    # Enhanced headers to bypass 403 Forbidden
+    local user_agent="Mozilla/5.0 (Linux; Android 14; Pixel 8 Build/UD1A.230803.041; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/120.0.6099.144 Mobile Safari/537.36"
+    
     if [ "$2" = "-" ]; then
         wget -nv -O "$2" \
              --load-cookies cookie.txt \
              --save-cookies cookie.txt \
              --keep-session-cookies \
-             --header="User-Agent: Mozilla/5.0 (Android 14; Mobile; rv:134.0) Gecko/134.0 Firefox/134.0" \
-             --header="Content-Type: application/octet-stream" \
-             --header="Accept-Language: en-US,en;q=0.9" \
+             --header="User-Agent: $user_agent" \
+             --header="Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8" \
+             --header="Accept-Language: en-US,en;q=0.5" \
+             --header="Referer: https://www.apkmirror.com/" \
+             --header="DNT: 1" \
              --header="Connection: keep-alive" \
              --header="Upgrade-Insecure-Requests: 1" \
-             --header="Cache-Control: max-age=0" \
-             --header="Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8" \
              --timeout=30 "$1" || rm -f "$2"
     else
         wget -nv -O "./download/$2" \
              --load-cookies cookie.txt \
              --save-cookies cookie.txt \
              --keep-session-cookies \
-             --header="User-Agent: Mozilla/5.0 (Android 14; Mobile; rv:134.0) Gecko/134.0 Firefox/134.0" \
-             --header="Content-Type: application/octet-stream" \
-             --header="Accept-Language: en-US,en;q=0.9" \
+             --header="User-Agent: $user_agent" \
+             --header="Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8" \
+             --header="Accept-Language: en-US,en;q=0.5" \
+             --header="Referer: https://www.apkmirror.com/" \
+             --header="DNT: 1" \
              --header="Connection: keep-alive" \
              --header="Upgrade-Insecure-Requests: 1" \
-             --header="Cache-Control: max-age=0" \
-             --header="Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8" \
              --timeout=30 "$1" || rm -f "./download/$2"
     fi
 }
