@@ -189,6 +189,8 @@ get_apk() {
 	export version="$version"
     if [[ -n "$version" ]]; then
         version=$(echo "$version" | tr -d ' ' | sed 's/\./-/g')
+        # EXPORTING APP_VERSION FOR FILENAME USE
+        export APP_VERSION="$version"
         green_log "[+] Downloading $3 version: $version $5 $6 $7"
         if [[ $5 == "Bundle" ]] || [[ $5 == "Bundle_extract" ]]; then
             local base_apk="$2.apkm"
@@ -224,6 +226,8 @@ get_apk() {
 				sed -n "$((attempt + 1))p")
 		fi
 		version=$(echo "$version" | tr -d ' ' | sed 's/\./-/g')
+        # EXPORTING APP_VERSION FOR FILENAME USE
+        export APP_VERSION="$version"
 		green_log "[+] Downloading $3 version: $version $5 $6 $7"
 		if [[ $5 == "Bundle" ]] || [[ $5 == "Bundle_extract" ]]; then
 			local base_apk="$2.apkm"
@@ -278,6 +282,8 @@ get_apkpure() {
 		url="https://apkpure.com/$3/downloading/"
 		version="$(req "$url" - | awk -F'Download APK | \\(' '/<h2>/{print $2}')"
 	fi
+    # EXPORTING APP_VERSION FOR FILENAME USE
+    export APP_VERSION="$version"
 	green_log "[+] Downloading $2 version: $version $4"
 	url="$(req "$url" - | grep -oP '<a[^>]+id="download_link"[^>]+href="\Khttps://[^"]+')"
 	req "$url" "$base_apk"
@@ -326,7 +332,8 @@ patch() {
 		if [ "$3" = inotia ]; then
 			unset CI GITHUB_ACTION GITHUB_ACTIONS GITHUB_ACTOR GITHUB_ENV GITHUB_EVENT_NAME GITHUB_EVENT_PATH GITHUB_HEAD_REF GITHUB_JOB GITHUB_REF GITHUB_REPOSITORY GITHUB_RUN_ID GITHUB_RUN_NUMBER GITHUB_SHA GITHUB_WORKFLOW GITHUB_WORKSPACE RUN_ID RUN_NUMBER
 		fi
-		eval java -jar *cli*.jar $p$b $m$opt --out=./release/$1-$2.apk$excludePatches$includePatches --keystore=./src/$ks.keystore $pu$force $a./download/$1.apk
+        # Changed --out parameter to include -v$APP_VERSION
+		eval java -jar *cli*.jar $p$b $m$opt --out=./release/$1-$2-v$APP_VERSION.apk$excludePatches$includePatches --keystore=./src/$ks.keystore $pu$force $a./download/$1.apk
   		unset version
 		unset lock_version
 		unset excludePatches
@@ -388,7 +395,8 @@ split_arch() {
 		$3 \
 		--keystore=./src/_ks.keystore --force \
 		--legacy-options=./src/options/$2.json $excludePatches$includePatches \
-		--out=./release/$1-${archs[i]}-$2.apk\
+        # Changed --out parameter to include -v$APP_VERSION
+		--out=./release/$1-${archs[i]}-$2-v$APP_VERSION.apk\
 		./download/$1.apk
 	else
 		red_log "[-] Not found $1.apk"
