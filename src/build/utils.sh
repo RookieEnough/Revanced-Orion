@@ -149,6 +149,17 @@ get_patches_key() {
 
 #################################################
 
+# Store the original version before sanitizing
+store_original_version() {
+    if [ -n "$version" ]; then
+        # Store the original version (with dots) for display and release naming
+        export ORIGINAL_VERSION="$version"
+        # Sanitize version for URLs (replace dots with hyphens)
+        SANITIZED_VERSION=$(echo "$version" | tr -d ' ' | sed 's/\./-/g')
+        export version="$SANITIZED_VERSION"
+    fi
+}
+
 # Download apks files from APKMirror:
 _req() {
     if [ "$2" = "-" ]; then
@@ -200,7 +211,7 @@ dl_apk() {
 	fi
 	
 	url="https://www.apkmirror.com$(echo "$html" | grep -oP 'id="download-link".*?href="\K[^"]+' | head -1)"
-	if [[ -z "$url" ]] || [[ "$url" == "https://www.apkmirror.com" ]]; then
+	if [[ -z "$url" ]] || [[ "$url" == "https://www.apkmirror.com" ]; then
 		red_log "[-] Could not extract download link"
 		return 1
 	fi
@@ -278,11 +289,11 @@ get_apk() {
 		esac
 	fi
 	
-	export version="$version"
+	# Store original version before sanitizing
+	store_original_version
 	
 	if [[ -n "$version" ]]; then
-		version=$(echo "$version" | tr -d ' ' | sed 's/\./-/g')
-		green_log "[+] Downloading $output_name version: $version $arch $dpi"
+		green_log "[+] Downloading $output_name version: $ORIGINAL_VERSION $arch $dpi"
 		
 		if [[ $arch == "Bundle" ]] || [[ $arch == "Bundle_extract" ]]; then
 			local base_apk="$output_name.apkm"
@@ -338,8 +349,10 @@ get_apk() {
 			version=${versions[$attempt]}
 		fi
 		
-		version=$(echo "$version" | tr -d ' ' | sed 's/\./-/g')
-		green_log "[+] Trying to download $output_name version: $version (attempt $((attempt+1)))"
+		# Store original version before sanitizing
+		store_original_version
+		
+		green_log "[+] Trying to download $output_name version: $ORIGINAL_VERSION (attempt $((attempt+1)))"
 		
 		if [[ $arch == "Bundle" ]] || [[ $arch == "Bundle_extract" ]]; then
 			local base_apk="$output_name.apkm"
@@ -379,8 +392,9 @@ get_apk() {
 			return 0
 		else
 			((attempt++))
-			red_log "[-] Failed to download $output_name with version $version"
+			red_log "[-] Failed to download $output_name with version $ORIGINAL_VERSION"
 			unset version
+			unset ORIGINAL_VERSION
 		fi
 	done
 	
@@ -437,7 +451,10 @@ get_apkpure() {
 		version="$(req "$url" - | awk -F'Download APK | \\(' '/<h2>/{print $2}' | head -1)"
 	fi
 	
-	green_log "[+] Downloading $output_name version: $version $arch"
+	# Store original version before sanitizing
+	store_original_version
+	
+	green_log "[+] Downloading $output_name version: $ORIGINAL_VERSION $arch"
 	
 	# Try to get download link
 	local download_url=$(req "$url" - | grep -oP '<a[^>]+id="download_link"[^>]+href="\Khttps://[^"]+' | head -1)
@@ -527,13 +544,24 @@ patch() {
 			fi
 		fi
 		
+		# Determine output filename with version
+		local output_filename
+		if [ -n "$ORIGINAL_VERSION" ]; then
+			# Clean version for filename (replace dots with hyphens)
+			local clean_version=$(echo "$ORIGINAL_VERSION" | sed 's/\./-/g')
+			output_filename="$1-$2-v$clean_version.apk"
+		else
+			output_filename="$1-$2.apk"
+		fi
+		
 		# Build command
-		local cmd="java -jar *cli*.jar $p$b $m$opt --out=./release/$1-$2.apk$excludePatches$includePatches --keystore=./src/$ks.keystore $pu$force $a./download/$1.apk"
+		local cmd="java -jar *cli*.jar $p$b $m$opt --out=./release/$output_filename$excludePatches$includePatches --keystore=./src/$ks.keystore $pu$force $a./download/$1.apk"
 		
 		# Run patching command
 		eval $cmd
 		
   		unset version
+		unset ORIGINAL_VERSION
 		unset lock_version
 		unset excludePatches
 		unset includePatches
@@ -607,13 +635,23 @@ split_arch() {
 		
 		local rip_libs=$(gen_rip_libs ${libs[i]})
 		
+		# Determine output filename with version
+		local output_filename
+		if [ -n "$ORIGINAL_VERSION" ]; then
+			# Clean version for filename (replace dots with hyphens)
+			local clean_version=$(echo "$ORIGINAL_VERSION" | sed 's/\./-/g')
+			output_filename="$1-${archs[i]}-$2-v$clean_version.apk"
+		else
+			output_filename="$1-${archs[i]}-$2.apk"
+		fi
+		
 		eval java -jar revanced-cli*.jar patch \
 		-p *.rvp \
 		$3 \
 		--keystore=./src/_ks.keystore --force \
 		--legacy-options=./src/options/$2.json $excludePatches$includePatches \
 		$rip_libs \
-		--out=./release/$1-${archs[i]}-$2.apk \
+		--out=./release/$output_filename \
 		./download/$1.apk
 	else
 		red_log "[-] Not found $1.apk"
