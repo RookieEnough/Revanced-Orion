@@ -1,4 +1,3 @@
-[file name]: utils.sh
 #!/bin/bash
 
 mkdir -p ./release ./download
@@ -211,7 +210,7 @@ dl_apk() {
 	fi
 	
 	url="https://www.apkmirror.com$(echo "$html" | grep -oP 'id="download-link".*?href="\K[^"]+' | head -1)"
-	if [[ -z "$url" ]] || [[ "$url" == "https://www.apkmirror.com" ]; then
+	if [[ -z "$url" ]] || [[ "$url" == "https://www.apkmirror.com" ]]; then
 		red_log "[-] Could not extract download link"
 		return 1
 	fi
