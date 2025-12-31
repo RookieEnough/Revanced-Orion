@@ -1,14 +1,15 @@
 #!/bin/bash
+set -euo pipefail  # Exit on error, undefined vars, pipe failures
 
 mkdir -p ./release ./download
 
 # Setup pup for download apk files
-wget -q -O ./pup.zip https://github.com/ericchiang/pup/releases/download/v0.4.0/pup_v0.4.0_linux_amd64.zip
+wget -q --no-check-certificate -O ./pup.zip https://github.com/ericchiang/pup/releases/download/v0.4.0/pup_v0.4.0_linux_amd64.zip
 unzip -o "./pup.zip" -d "./" > /dev/null 2>&1
 chmod +x ./pup
 pup="./pup"
 # Setup APKEditor for install combine split apks
-wget -q -O ./APKEditor.jar https://github.com/REAndroid/APKEditor/releases/download/V1.4.2/APKEditor-1.4.2.jar
+wget -q --no-check-certificate -O ./APKEditor.jar https://github.com/REAndroid/APKEditor/releases/download/V1.4.2/APKEditor-1.4.2.jar
 APKEditor="./APKEditor.jar"
 
 #################################################
@@ -29,7 +30,7 @@ dl_gh() {
 		local repo=$1
 		for repo in $1 ; do
 			local owner=$2 tag=$3 found=0 assets=0
-			releases=$(wget -qO- "https://api.github.com/repos/$owner/$repo/releases")
+			releases=$(wget -q --no-check-certificate -O- "https://api.github.com/repos/$owner/$repo/releases")
 			while read -r line; do
 				if [[ $line == *"\"tag_name\":"* ]]; then
 					tag_name=$(echo $line | cut -d '"' -f 4)
@@ -57,7 +58,7 @@ dl_gh() {
 						url=$(echo $line | cut -d '"' -f 4)
 							if [[ $url != *.asc ]]; then
 							name=$(basename "$url")
-							wget -q -O "$name" "$url"
+							wget -q --no-check-certificate -O "$name" "$url"
 							green_log "[+] Downloading $name from $owner"
 						fi
 					fi
@@ -73,12 +74,12 @@ dl_gh() {
 	else
 		for repo in $1 ; do
 			tags=$( [ "$3" == "latest" ] && echo "latest" || echo "tags/$3" )
-			wget -qO- "https://api.github.com/repos/$2/$repo/releases/$tags" \
+			wget -q --no-check-certificate -O- "https://api.github.com/repos/$2/$repo/releases/$tags" \
 			| jq -r '.assets[] | "\(.browser_download_url) \(.name)"' \
 			| while read -r url names; do
    				if [[ $url != *.asc ]]; then
 					green_log "[+] Downloading $names from $2"
-					wget -q -O "$names" $url
+					wget -q --no-check-certificate -O "$names" $url
      				fi
 			done
 		done
@@ -162,9 +163,9 @@ store_original_version() {
 # Download apks files from APKMirror:
 _req() {
     if [ "$2" = "-" ]; then
-        wget -nv -O "$2" --header="User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" --header="Accept-Language: en-US,en;q=0.9" --header="Connection: keep-alive" --header="Upgrade-Insecure-Requests: 1" --header="Cache-Control: max-age=0" --header="Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8" --keep-session-cookies --timeout=30 "$1" || return 1
+        wget -nv --no-check-certificate -O "$2" --header="User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" --header="Accept-Language: en-US,en;q=0.9" --header="Connection: keep-alive" --header="Upgrade-Insecure-Requests: 1" --header="Cache-Control: max-age=0" --header="Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8" --keep-session-cookies --timeout=30 "$1" || return 1
     else
-        wget -nv -O "./download/$2" --header="User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" --header="Accept-Language: en-US,en;q=0.9" --header="Connection: keep-alive" --header="Upgrade-Insecure-Requests: 1" --header="Cache-Control: max-age=0" --header="Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8" --keep-session-cookies --timeout=30 "$1" || return 1
+        wget -nv --no-check-certificate -O "./download/$2" --header="User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" --header="Accept-Language: en-US,en;q=0.9" --header="Connection: keep-alive" --header="Upgrade-Insecure-Requests: 1" --header="Cache-Control: max-age=0" --header="Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8" --keep-session-cookies --timeout=30 "$1" || return 1
     fi
 }
 req() {
@@ -185,7 +186,7 @@ dl_apk() {
 		url="https://www.apkmirror.com$(echo "$html" | tr '\n' ' ' | sed -n "s/.*<a[^>]*href=\"\([^\"]*\)\".*${regexp}.*/\1/p")"
 	else
 		# For split APKs
-		url="https://www.apkmirror.com$(echo "$html" | tr '\n' ' ' | sed -n "s/href=\"/@/g; s;.*${regexp}.*;\1;p")"
+		url="https://www.apkmirror.com$(echo "$html" | tr '\n' ' ' | sed -n "s/href=\"/ @/g; s;.*${regexp}.*;\1;p")"
 	fi
 	
 	# Get download button page
@@ -196,8 +197,8 @@ dl_apk() {
 	fi
 	
 	# Extract download link
-	url="https://www.apkmirror.com$(echo "$html" | grep -oP 'class="[^"]*downloadButton[^"]*".*?href="\K[^"]+' | head -1)"
-	if [[ -z "$url" ]] || [[ "$url" == "https://www.apkmirror.com" ]]; then
+	url="https://www.apkmirror.com$(echo "$html" | grep -oP 'class="[^"]*downloadButton[^"]*" .*?href="\K[^"]+' | head -1)"
+	if [[ -z "$url" || "$url" == "https://www.apkmirror.com" ]]; then
 		# Try alternative method
 		url="https://www.apkmirror.com$(echo "$html" | grep -oP 'href="\K[^"]+(?="[^>]*>Download APK<)' | head -1)"
 	fi
@@ -209,8 +210,8 @@ dl_apk() {
 		return 1
 	fi
 	
-	url="https://www.apkmirror.com$(echo "$html" | grep -oP 'id="download-link".*?href="\K[^"]+' | head -1)"
-	if [[ -z "$url" ]] || [[ "$url" == "https://www.apkmirror.com" ]]; then
+	url="https://www.apkmirror.com$(echo "$html" | grep -oP 'id="download-link" .*?href="\K[^"]+' | head -1)"
+	if [[ -z "$url" || "$url" == "https://www.apkmirror.com" ]]; then
 		red_log "[-] Could not extract download link"
 		return 1
 	fi
@@ -267,20 +268,20 @@ get_apk() {
 		fi
 	fi
 	
-	# If still no version, try default versions
+	# If still no version, try default versions (updated for 2025)
 	if [ -z "$version" ] || [ "$version" = "null" ] || [ "$version" = "" ]; then
 		case "$package_name" in
 			"com.google.android.youtube")
-				version="19.50.40"
+				version="20.51.39"
 				;;
 			"com.google.android.apps.youtube.music")
-				version="7.15.53"
+				version="7.46.51"
 				;;
 			"com.google.android.apps.photos")
-				version="7.32.0.765953717"
+				version="6.99.0.642364942"
 				;;
 			"com.duolingo")
-				version="7.3.2"
+				version="7.55.0"
 				;;
 			*)
 				version=""
@@ -312,7 +313,6 @@ get_apk() {
 				   "$base_apk" \
 				   "$arch"
 		else
-			# For split APKs
 			url_regexp="$arch.*$dpi.*$min_version"
 			dl_apk "https://www.apkmirror.com/apk/$publisher/$app_slug-$version-release/" \
 				   "$url_regexp" \
@@ -328,7 +328,7 @@ get_apk() {
 				java -jar $APKEditor m -i "./download/$base_apk" -o "./download/$output_name.apk" > /dev/null 2>&1
 			elif [[ $arch == "Bundle_extract" ]]; then
 				green_log "[+] Extracting bundle"
-				unzip -o "./download/$base_apk" -d "./download/$output_name" > /dev/null 2>&1
+				unzip -o "./download/$base_apk" -d "./download/$output_name" > /dev/null 2>&1 || red_log "[-] Unzip failed for $output_name"
 			fi
 			return 0
 		else
@@ -337,20 +337,28 @@ get_apk() {
 		fi
 	fi
 	
-	# Fallback: try multiple versions
+	# Fallback: try multiple versions (per-app arrays)
 	local attempt=0
-	local versions=("19.50.40" "19.49.37" "19.45.43" "19.44.39" "19.43.36")
+	local versions=()
+	case "$package_name" in
+		"com.google.android.youtube")
+			versions=("20.51.39" "20.50.40" "20.47.62" "20.45.37" "20.43.36")
+			;;
+		"com.google.android.apps.youtube.music")
+			versions=("7.46.51" "7.45.52" "7.44.50" "7.43.51" "7.42.49")
+			;;
+		"com.google.android.apps.photos")
+			versions=("6.99.0.642364942" "6.98.0.634984841" "6.97.0.627984841" "6.96.0.620984841")
+			;;
+		*)
+			red_log "[-] No fallback versions for $package_name"
+			return 1
+			;;
+	esac
 	
 	while [ $attempt -lt ${#versions[@]} ]; do
-		if [ $attempt -eq 0 ]; then
-			version=${versions[0]}
-		else
-			version=${versions[$attempt]}
-		fi
-		
-		# Store original version before sanitizing
+		version=${versions[$attempt]}
 		store_original_version
-		
 		green_log "[+] Trying to download $output_name version: $ORIGINAL_VERSION (attempt $((attempt+1)))"
 		
 		if [[ $arch == "Bundle" ]] || [[ $arch == "Bundle_extract" ]]; then
@@ -386,14 +394,13 @@ get_apk() {
 				java -jar $APKEditor m -i "./download/$base_apk" -o "./download/$output_name.apk" > /dev/null 2>&1
 			elif [[ $arch == "Bundle_extract" ]]; then
 				green_log "[+] Extracting bundle"
-				unzip -o "./download/$base_apk" -d "./download/$output_name" > /dev/null 2>&1
+				unzip -o "./download/$base_apk" -d "./download/$output_name" > /dev/null 2>&1 || red_log "[-] Unzip failed for $output_name"
 			fi
 			return 0
 		else
 			((attempt++))
 			red_log "[-] Failed to download $output_name with version $ORIGINAL_VERSION"
-			unset version
-			unset ORIGINAL_VERSION
+			unset version ORIGINAL_VERSION
 		fi
 	done
 	
