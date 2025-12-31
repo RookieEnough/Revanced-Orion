@@ -1,4 +1,3 @@
-[file name]: ci.yml
 name: 2. Check new patch
 permissions: write-all
 on:
