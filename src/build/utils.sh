@@ -1,15 +1,14 @@
 #!/bin/bash
-set -euo pipefail  # Exit on error, undefined vars, pipe failures
 
 mkdir -p ./release ./download
 
 # Setup pup for download apk files
-wget -q --no-check-certificate -O ./pup.zip https://github.com/ericchiang/pup/releases/download/v0.4.0/pup_v0.4.0_linux_amd64.zip
+wget -q -O ./pup.zip https://github.com/ericchiang/pup/releases/download/v0.4.0/pup_v0.4.0_linux_amd64.zip
 unzip -o "./pup.zip" -d "./" > /dev/null 2>&1
 chmod +x ./pup
 pup="./pup"
 # Setup APKEditor for install combine split apks
-wget -q --no-check-certificate -O ./APKEditor.jar https://github.com/REAndroid/APKEditor/releases/download/V1.4.2/APKEditor-1.4.2.jar
+wget -q -O ./APKEditor.jar https://github.com/REAndroid/APKEditor/releases/download/V1.4.2/APKEditor-1.4.2.jar
 APKEditor="./APKEditor.jar"
 
 #################################################
@@ -30,7 +29,7 @@ dl_gh() {
 		local repo=$1
 		for repo in $1 ; do
 			local owner=$2 tag=$3 found=0 assets=0
-			releases=$(wget -q --no-check-certificate -O- "https://api.github.com/repos/$owner/$repo/releases")
+			releases=$(wget -qO- "https://api.github.com/repos/$owner/$repo/releases")
 			while read -r line; do
 				if [[ $line == *"\"tag_name\":"* ]]; then
 					tag_name=$(echo $line | cut -d '"' -f 4)
@@ -58,7 +57,7 @@ dl_gh() {
 						url=$(echo $line | cut -d '"' -f 4)
 							if [[ $url != *.asc ]]; then
 							name=$(basename "$url")
-							wget -q --no-check-certificate -O "$name" "$url"
+							wget -q -O "$name" "$url"
 							green_log "[+] Downloading $name from $owner"
 						fi
 					fi
@@ -74,12 +73,12 @@ dl_gh() {
 	else
 		for repo in $1 ; do
 			tags=$( [ "$3" == "latest" ] && echo "latest" || echo "tags/$3" )
-			wget -q --no-check-certificate -O- "https://api.github.com/repos/$2/$repo/releases/$tags" \
+			wget -qO- "https://api.github.com/repos/$2/$repo/releases/$tags" \
 			| jq -r '.assets[] | "\(.browser_download_url) \(.name)"' \
 			| while read -r url names; do
    				if [[ $url != *.asc ]]; then
 					green_log "[+] Downloading $names from $2"
-					wget -q --no-check-certificate -O "$names" $url
+					wget -q -O "$names" $url
      				fi
 			done
 		done
@@ -163,9 +162,9 @@ store_original_version() {
 # Download apks files from APKMirror:
 _req() {
     if [ "$2" = "-" ]; then
-        wget -nv --no-check-certificate -O "$2" --header="User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" --header="Accept-Language: en-US,en;q=0.9" --header="Connection: keep-alive" --header="Upgrade-Insecure-Requests: 1" --header="Cache-Control: max-age=0" --header="Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8" --keep-session-cookies --timeout=30 "$1" || return 1
+        wget -nv -O "$2" --header="User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" --header="Accept-Language: en-US,en;q=0.9" --header="Connection: keep-alive" --header="Upgrade-Insecure-Requests: 1" --header="Cache-Control: max-age=0" --header="Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8" --keep-session-cookies --timeout=30 "$1" || return 1
     else
-        wget -nv --no-check-certificate -O "./download/$2" --header="User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" --header="Accept-Language: en-US,en;q=0.9" --header="Connection: keep-alive" --header="Upgrade-Insecure-Requests: 1" --header="Cache-Control: max-age=0" --header="Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8" --keep-session-cookies --timeout=30 "$1" || return 1
+        wget -nv -O "./download/$2" --header="User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" --header="Accept-Language: en-US,en;q=0.9" --header="Connection: keep-alive" --header="Upgrade-Insecure-Requests: 1" --header="Cache-Control: max-age=0" --header="Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8" --keep-session-cookies --timeout=30 "$1" || return 1
     fi
 }
 req() {
@@ -186,7 +185,7 @@ dl_apk() {
 		url="https://www.apkmirror.com$(echo "$html" | tr '\n' ' ' | sed -n "s/.*<a[^>]*href=\"\([^\"]*\)\".*${regexp}.*/\1/p")"
 	else
 		# For split APKs
-		url="https://www.apkmirror.com$(echo "$html" | tr '\n' ' ' | sed -n "s/href=\"/ @/g; s;.*${regexp}.*;\1;p")"
+		url="https://www.apkmirror.com$(echo "$html" | tr '\n' ' ' | sed -n "s/href=\"/@/g; s;.*${regexp}.*;\1;p")"
 	fi
 	
 	# Get download button page
@@ -197,8 +196,8 @@ dl_apk() {
 	fi
 	
 	# Extract download link
-	url="https://www.apkmirror.com$(echo "$html" | grep -oP 'class="[^"]*downloadButton[^"]*" .*?href="\K[^"]+' | head -1)"
-	if [[ -z "$url" || "$url" == "https://www.apkmirror.com" ]]; then
+	url="https://www.apkmirror.com$(echo "$html" | grep -oP 'class="[^"]*downloadButton[^"]*".*?href="\K[^"]+' | head -1)"
+	if [[ -z "$url" ]] || [[ "$url" == "https://www.apkmirror.com" ]]; then
 		# Try alternative method
 		url="https://www.apkmirror.com$(echo "$html" | grep -oP 'href="\K[^"]+(?="[^>]*>Download APK<)' | head -1)"
 	fi
@@ -210,8 +209,8 @@ dl_apk() {
 		return 1
 	fi
 	
-	url="https://www.apkmirror.com$(echo "$html" | grep -oP 'id="download-link" .*?href="\K[^"]+' | head -1)"
-	if [[ -z "$url" || "$url" == "https://www.apkmirror.com" ]]; then
+	url="https://www.apkmirror.com$(echo "$html" | grep -oP 'id="download-link".*?href="\K[^"]+' | head -1)"
+	if [[ -z "$url" ]] || [[ "$url" == "https://www.apkmirror.com" ]]; then
 		red_log "[-] Could not extract download link"
 		return 1
 	fi
@@ -236,7 +235,7 @@ get_apk() {
 	publisher=$(echo "$publisher" | sed 's/\./-/g')
 	
 	# Get version from patches if not locked
-	if [ -z "$version" ] && [ "${lock_version:-0}" != "1" ]; then
+	if [ -z "$version" ] && [ "$lock_version" != "1" ]; then
 		if [[ $(ls revanced-cli-*.jar 2>/dev/null) =~ revanced-cli-([0-9]+) ]]; then
 			num=${BASH_REMATCH[1]}
 			if [ $num -ge 5 ]; then
@@ -268,20 +267,20 @@ get_apk() {
 		fi
 	fi
 	
-	# If still no version, try default versions (updated for Dec 2025)
+	# If still no version, try default versions
 	if [ -z "$version" ] || [ "$version" = "null" ] || [ "$version" = "" ]; then
 		case "$package_name" in
 			"com.google.android.youtube")
-				version="20.51.39"
+				version="19.50.40"
 				;;
 			"com.google.android.apps.youtube.music")
-				version="8.50.51"
+				version="7.15.53"
 				;;
 			"com.google.android.apps.photos")
-				version="7.57.0.843750501"
+				version="7.32.0.765953717"
 				;;
 			"com.duolingo")
-				version="6.61.2"
+				version="7.3.2"
 				;;
 			*)
 				version=""
@@ -313,6 +312,7 @@ get_apk() {
 				   "$base_apk" \
 				   "$arch"
 		else
+			# For split APKs
 			url_regexp="$arch.*$dpi.*$min_version"
 			dl_apk "https://www.apkmirror.com/apk/$publisher/$app_slug-$version-release/" \
 				   "$url_regexp" \
@@ -325,44 +325,32 @@ get_apk() {
 			
 			if [[ $arch == "Bundle" ]]; then
 				green_log "[+] Merging splits apk to standalone apk"
-				java -jar $APKEditor m -i "./download/$base_apk" -o "./download/$output_name.apk" > /dev/null 2>&1 || red_log "[-] Merge failed for $output_name"
+				java -jar $APKEditor m -i "./download/$base_apk" -o "./download/$output_name.apk" > /dev/null 2>&1
 			elif [[ $arch == "Bundle_extract" ]]; then
 				green_log "[+] Extracting bundle"
-				unzip -o "./download/$base_apk" -d "./download/$output_name" > /dev/null 2>&1 || { red_log "[-] Unzip failed for $output_name"; return 1; }
-				if [ ! -d "./download/$output_name" ]; then red_log "[-] Bundle extraction dir not created"; return 1; fi
+				unzip -o "./download/$base_apk" -d "./download/$output_name" > /dev/null 2>&1
 			fi
 			return 0
 		else
 			red_log "[-] Failed to download $output_name"
-			unset version ORIGINAL_VERSION
+			return 1
 		fi
 	fi
 	
-	# Fallback: try multiple versions (updated for 2025)
+	# Fallback: try multiple versions
 	local attempt=0
-	local versions=()
-	case "$package_name" in
-		"com.google.android.youtube")
-			versions=("20.51.39" "20.50.40" "20.49.41" "20.48.42" "20.47.43")
-			;;
-		"com.google.android.apps.youtube.music")
-			versions=("8.50.51" "8.49.52" "8.48.53" "8.47.54" "8.46.55")
-			;;
-		"com.google.android.apps.photos")
-			versions=("7.57.0.843750501" "7.56.0.836750501" "7.55.0.829750501" "7.54.0.822750501" "7.53.0.815750501")
-			;;
-		"com.duolingo")
-			versions=("6.61.2" "6.60.3" "6.59.4" "6.58.5" "6.57.6")
-			;;
-		*)
-			red_log "[-] No fallback versions for $package_name"
-			return 1
-			;;
-	esac
+	local versions=("19.50.40" "19.49.37" "19.45.43" "19.44.39" "19.43.36")
 	
 	while [ $attempt -lt ${#versions[@]} ]; do
-		version=${versions[$attempt]}
+		if [ $attempt -eq 0 ]; then
+			version=${versions[0]}
+		else
+			version=${versions[$attempt]}
+		fi
+		
+		# Store original version before sanitizing
 		store_original_version
+		
 		green_log "[+] Trying to download $output_name version: $ORIGINAL_VERSION (attempt $((attempt+1)))"
 		
 		if [[ $arch == "Bundle" ]] || [[ $arch == "Bundle_extract" ]]; then
@@ -395,17 +383,17 @@ get_apk() {
 			
 			if [[ $arch == "Bundle" ]]; then
 				green_log "[+] Merging splits apk to standalone apk"
-				java -jar $APKEditor m -i "./download/$base_apk" -o "./download/$output_name.apk" > /dev/null 2>&1 || red_log "[-] Merge failed for $output_name"
+				java -jar $APKEditor m -i "./download/$base_apk" -o "./download/$output_name.apk" > /dev/null 2>&1
 			elif [[ $arch == "Bundle_extract" ]]; then
 				green_log "[+] Extracting bundle"
-				unzip -o "./download/$base_apk" -d "./download/$output_name" > /dev/null 2>&1 || { red_log "[-] Unzip failed for $output_name"; return 1; }
-				if [ ! -d "./download/$output_name" ]; then red_log "[-] Bundle extraction dir not created"; return 1; fi
+				unzip -o "./download/$base_apk" -d "./download/$output_name" > /dev/null 2>&1
 			fi
 			return 0
 		else
 			((attempt++))
 			red_log "[-] Failed to download $output_name with version $ORIGINAL_VERSION"
-			unset version ORIGINAL_VERSION
+			unset version
+			unset ORIGINAL_VERSION
 		fi
 	done
 	
@@ -419,7 +407,7 @@ get_apkpure() {
 	local app_slug=$3
 	local arch=${4:-}
 	
-	if [ -z "$version" ] && [ "${lock_version:-0}" != "1" ]; then
+	if [ -z "$version" ] && [ "$lock_version" != "1" ]; then
 		if [[ $(ls revanced-cli-*.jar 2>/dev/null) =~ revanced-cli-([0-9]+) ]]; then
 			num=${BASH_REMATCH[1]}
 			if [ $num -ge 5 ]; then
@@ -482,11 +470,10 @@ get_apkpure() {
 		
 		if [[ $arch == "Bundle" ]]; then
 			green_log "[+] Merging splits apk to standalone apk"
-			java -jar $APKEditor m -i "./download/$base_apk" -o "./download/$output_name.apk" > /dev/null 2>&1 || red_log "[-] Merge failed for $output_name (APKPure)"
+			java -jar $APKEditor m -i "./download/$base_apk" -o "./download/$output_name.apk" > /dev/null 2>&1
 		elif [[ $arch == "Bundle_extract" ]]; then
 			green_log "[+] Extracting bundle"
-			unzip -o "./download/$base_apk" -d "./download/$output_name" > /dev/null 2>&1 || { red_log "[-] Unzip failed for $output_name (APKPure)"; return 1; }
-			if [ ! -d "./download/$output_name" ]; then red_log "[-] Bundle extraction dir not created (APKPure)"; return 1; fi
+			unzip -o "./download/$base_apk" -d "./download/$output_name" > /dev/null 2>&1
 		fi
 		return 0
 	else
@@ -570,8 +557,8 @@ patch() {
 		local cmd="java -jar *cli*.jar $p$b $m$opt --out=./release/$output_filename$excludePatches$includePatches --keystore=./src/$ks.keystore $pu$force $a./download/$1.apk"
 		
 		# Run patching command
-		eval $cmd || { red_log "[-] Patching failed for $1"; return 1; }
-  		
+		eval $cmd
+		
   		unset version
 		unset ORIGINAL_VERSION
 		unset lock_version
@@ -589,7 +576,7 @@ patch() {
 split_editor() {
     if [[ -z "$3" || -z "$4" ]]; then
         green_log "[+] Merging splits apk to standalone apk"
-        java -jar $APKEditor m -i "./download/$1" -o "./download/$2.apk" > /dev/null 2>&1 || { red_log "[-] Merge failed in split_editor"; return 1; }
+        java -jar $APKEditor m -i "./download/$1" -o "./download/$2.apk" > /dev/null 2>&1
         return 0
     fi
     
@@ -627,7 +614,7 @@ split_editor() {
     done
 
     green_log "[+] Merging splits apk to standalone apk"
-    java -jar $APKEditor m -i "./download/$2" -o "./download/$2.apk" > /dev/null 2>&1 || { red_log "[-] Final merge failed in split_editor"; return 1; }
+    java -jar $APKEditor m -i "./download/$2" -o "./download/$2.apk" > /dev/null 2>&1
 }
 
 #################################################
@@ -664,7 +651,7 @@ split_arch() {
 		--legacy-options=./src/options/$2.json $excludePatches$includePatches \
 		$rip_libs \
 		--out=./release/$output_filename \
-		./download/$1.apk || { red_log "[-] Split arch failed for ${archs[i]}"; return 1; }
+		./download/$1.apk
 	else
 		red_log "[-] Not found $1.apk"
 		return 1
