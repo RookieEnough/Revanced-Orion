@@ -236,7 +236,7 @@ get_apk() {
 	publisher=$(echo "$publisher" | sed 's/\./-/g')
 	
 	# Get version from patches if not locked
-	if [ -z "$version" ] && [ "$lock_version" != "1" ]; then
+	if [ -z "$version" ] && [ "${lock_version:-0}" != "1" ]; then
 		if [[ $(ls revanced-cli-*.jar 2>/dev/null) =~ revanced-cli-([0-9]+) ]]; then
 			num=${BASH_REMATCH[1]}
 			if [ $num -ge 5 ]; then
@@ -268,20 +268,20 @@ get_apk() {
 		fi
 	fi
 	
-	# If still no version, try default versions (updated for 2025)
+	# If still no version, try default versions (updated for Dec 2025)
 	if [ -z "$version" ] || [ "$version" = "null" ] || [ "$version" = "" ]; then
 		case "$package_name" in
 			"com.google.android.youtube")
 				version="20.51.39"
 				;;
 			"com.google.android.apps.youtube.music")
-				version="7.46.51"
+				version="8.50.51"
 				;;
 			"com.google.android.apps.photos")
-				version="6.99.0.642364942"
+				version="7.57.0.843750501"
 				;;
 			"com.duolingo")
-				version="7.55.0"
+				version="6.61.2"
 				;;
 			*)
 				version=""
@@ -325,30 +325,34 @@ get_apk() {
 			
 			if [[ $arch == "Bundle" ]]; then
 				green_log "[+] Merging splits apk to standalone apk"
-				java -jar $APKEditor m -i "./download/$base_apk" -o "./download/$output_name.apk" > /dev/null 2>&1
+				java -jar $APKEditor m -i "./download/$base_apk" -o "./download/$output_name.apk" > /dev/null 2>&1 || red_log "[-] Merge failed for $output_name"
 			elif [[ $arch == "Bundle_extract" ]]; then
 				green_log "[+] Extracting bundle"
-				unzip -o "./download/$base_apk" -d "./download/$output_name" > /dev/null 2>&1 || red_log "[-] Unzip failed for $output_name"
+				unzip -o "./download/$base_apk" -d "./download/$output_name" > /dev/null 2>&1 || { red_log "[-] Unzip failed for $output_name"; return 1; }
+				if [ ! -d "./download/$output_name" ]; then red_log "[-] Bundle extraction dir not created"; return 1; fi
 			fi
 			return 0
 		else
 			red_log "[-] Failed to download $output_name"
-			return 1
+			unset version ORIGINAL_VERSION
 		fi
 	fi
 	
-	# Fallback: try multiple versions (per-app arrays)
+	# Fallback: try multiple versions (updated for 2025)
 	local attempt=0
 	local versions=()
 	case "$package_name" in
 		"com.google.android.youtube")
-			versions=("20.51.39" "20.50.40" "20.47.62" "20.45.37" "20.43.36")
+			versions=("20.51.39" "20.50.40" "20.49.41" "20.48.42" "20.47.43")
 			;;
 		"com.google.android.apps.youtube.music")
-			versions=("7.46.51" "7.45.52" "7.44.50" "7.43.51" "7.42.49")
+			versions=("8.50.51" "8.49.52" "8.48.53" "8.47.54" "8.46.55")
 			;;
 		"com.google.android.apps.photos")
-			versions=("6.99.0.642364942" "6.98.0.634984841" "6.97.0.627984841" "6.96.0.620984841")
+			versions=("7.57.0.843750501" "7.56.0.836750501" "7.55.0.829750501" "7.54.0.822750501" "7.53.0.815750501")
+			;;
+		"com.duolingo")
+			versions=("6.61.2" "6.60.3" "6.59.4" "6.58.5" "6.57.6")
 			;;
 		*)
 			red_log "[-] No fallback versions for $package_name"
@@ -391,10 +395,11 @@ get_apk() {
 			
 			if [[ $arch == "Bundle" ]]; then
 				green_log "[+] Merging splits apk to standalone apk"
-				java -jar $APKEditor m -i "./download/$base_apk" -o "./download/$output_name.apk" > /dev/null 2>&1
+				java -jar $APKEditor m -i "./download/$base_apk" -o "./download/$output_name.apk" > /dev/null 2>&1 || red_log "[-] Merge failed for $output_name"
 			elif [[ $arch == "Bundle_extract" ]]; then
 				green_log "[+] Extracting bundle"
-				unzip -o "./download/$base_apk" -d "./download/$output_name" > /dev/null 2>&1 || red_log "[-] Unzip failed for $output_name"
+				unzip -o "./download/$base_apk" -d "./download/$output_name" > /dev/null 2>&1 || { red_log "[-] Unzip failed for $output_name"; return 1; }
+				if [ ! -d "./download/$output_name" ]; then red_log "[-] Bundle extraction dir not created"; return 1; fi
 			fi
 			return 0
 		else
@@ -414,7 +419,7 @@ get_apkpure() {
 	local app_slug=$3
 	local arch=${4:-}
 	
-	if [ -z "$version" ] && [ "$lock_version" != "1" ]; then
+	if [ -z "$version" ] && [ "${lock_version:-0}" != "1" ]; then
 		if [[ $(ls revanced-cli-*.jar 2>/dev/null) =~ revanced-cli-([0-9]+) ]]; then
 			num=${BASH_REMATCH[1]}
 			if [ $num -ge 5 ]; then
@@ -477,10 +482,11 @@ get_apkpure() {
 		
 		if [[ $arch == "Bundle" ]]; then
 			green_log "[+] Merging splits apk to standalone apk"
-			java -jar $APKEditor m -i "./download/$base_apk" -o "./download/$output_name.apk" > /dev/null 2>&1
+			java -jar $APKEditor m -i "./download/$base_apk" -o "./download/$output_name.apk" > /dev/null 2>&1 || red_log "[-] Merge failed for $output_name (APKPure)"
 		elif [[ $arch == "Bundle_extract" ]]; then
 			green_log "[+] Extracting bundle"
-			unzip -o "./download/$base_apk" -d "./download/$output_name" > /dev/null 2>&1
+			unzip -o "./download/$base_apk" -d "./download/$output_name" > /dev/null 2>&1 || { red_log "[-] Unzip failed for $output_name (APKPure)"; return 1; }
+			if [ ! -d "./download/$output_name" ]; then red_log "[-] Bundle extraction dir not created (APKPure)"; return 1; fi
 		fi
 		return 0
 	else
@@ -564,8 +570,8 @@ patch() {
 		local cmd="java -jar *cli*.jar $p$b $m$opt --out=./release/$output_filename$excludePatches$includePatches --keystore=./src/$ks.keystore $pu$force $a./download/$1.apk"
 		
 		# Run patching command
-		eval $cmd
-		
+		eval $cmd || { red_log "[-] Patching failed for $1"; return 1; }
+  		
   		unset version
 		unset ORIGINAL_VERSION
 		unset lock_version
@@ -583,7 +589,7 @@ patch() {
 split_editor() {
     if [[ -z "$3" || -z "$4" ]]; then
         green_log "[+] Merging splits apk to standalone apk"
-        java -jar $APKEditor m -i "./download/$1" -o "./download/$2.apk" > /dev/null 2>&1
+        java -jar $APKEditor m -i "./download/$1" -o "./download/$2.apk" > /dev/null 2>&1 || { red_log "[-] Merge failed in split_editor"; return 1; }
         return 0
     fi
     
@@ -621,7 +627,7 @@ split_editor() {
     done
 
     green_log "[+] Merging splits apk to standalone apk"
-    java -jar $APKEditor m -i "./download/$2" -o "./download/$2.apk" > /dev/null 2>&1
+    java -jar $APKEditor m -i "./download/$2" -o "./download/$2.apk" > /dev/null 2>&1 || { red_log "[-] Final merge failed in split_editor"; return 1; }
 }
 
 #################################################
@@ -658,7 +664,7 @@ split_arch() {
 		--legacy-options=./src/options/$2.json $excludePatches$includePatches \
 		$rip_libs \
 		--out=./release/$output_filename \
-		./download/$1.apk
+		./download/$1.apk || { red_log "[-] Split arch failed for ${archs[i]}"; return 1; }
 	else
 		red_log "[-] Not found $1.apk"
 		return 1
