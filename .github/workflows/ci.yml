@@ -1,3 +1,4 @@
+[file name]: ci.yml
 name: 2. Check new patch
 permissions: write-all
 on:
@@ -15,6 +16,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       repository: ${{ github.repository }}
+      max_retries: 3
     steps:
       - name: Checkout
         uses: actions/checkout@v4.1.1
@@ -75,7 +77,6 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           retry_count: ${{ github.event.inputs.retry_count }}
-          max_retries: 3
     outputs:
       check_rv: ${{ steps.check-rv.outputs.new_patch }}
       check_rve_arsclib: ${{ steps.check-rve-arsclib.outputs.new_patch }}
