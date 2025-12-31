@@ -1,4 +1,3 @@
-[file name]: manual-patch.yml
 name: 1. Manual Patch
 permissions: write-all
 env:
